@@ -23,18 +23,27 @@ class JobStateManager {
             await this.ensureDataDirectory();
             await this.loadState();
             
-            console.log(`Estado de sesión cargado exitosamente:`);
-            console.log(`- Última ejecución: ${this.state.lastRun ? new Date(this.state.lastRun).toLocaleString() : 'Nunca'}`);
-            console.log(`- Jobs procesados: ${this.state.processedJobs.size}`);
-            console.log(`- Búsquedas en historial: ${this.state.searchHistory.length}`);
-            console.log(`- Total procesados históricos: ${this.state.stats.totalProcessed}`);
             console.log('=== SESIÓN INICIADA CORRECTAMENTE ===');
             
         } catch (error) {
-            console.warn('Error al inicializar estado, usando valores por defecto:', error.message);
-            console.log('Creando nueva sesión...');
+            console.log('No hay sesión guardada, creando nueva sesión...');
+            console.log(`Error: ${error.message}`);
+            console.log('Creando nueva sesión de emergencia...');
+            
+            // Inicializar estado vacío
+            this.state = {
+                lastRun: null,
+                processedJobs: new Set(),
+                searchHistory: [],
+                stats: {
+                    totalProcessed: 0,
+                    lastProcessedCount: 0,
+                    averageProcessingTime: 0
+                }
+            };
+            
             await this.saveState();
-            console.log('=== NUEVA SESIÓN CREADA ===');
+            console.log('=== NUEVA SESIÓN DE EMERGENCIA CREADA ===');
         }
     }
 
@@ -48,9 +57,28 @@ class JobStateManager {
 
     async loadState() {
         try {
+            console.log('=== CARGANDO SESIÓN GUARDADA ===');
+            console.log(`📁 Buscando archivo: ${this.stateFile}`);
+            
+            // Verificar si el archivo existe
+            try {
+                await fs.access(this.stateFile);
+                console.log('✓ Archivo de sesión encontrado');
+            } catch {
+                console.log('❌ Archivo de sesión no existe');
+                throw new Error('Archivo no encontrado');
+            }
+            
+            // Leer y parsear el archivo
             const data = await fs.readFile(this.stateFile, 'utf8');
             const parsed = JSON.parse(data);
             
+            // Obtener estadísticas del archivo
+            const fileStats = await fs.stat(this.stateFile);
+            console.log(`📊 Tamaño del archivo: ${fileStats.size} bytes`);
+            console.log(`📅 Última modificación: ${fileStats.mtime.toLocaleString()}`);
+            
+            // Reconstruir el estado
             this.state = {
                 lastRun: parsed.lastRun || null,
                 processedJobs: new Set(parsed.processedJobs || []),
@@ -62,37 +90,93 @@ class JobStateManager {
                 }
             };
             
-            console.log(`Estado cargado: ${this.state.processedJobs.size} jobs procesados`);
+            console.log('✓ Estado reconstruido exitosamente:');
+            console.log(`- Jobs procesados: ${this.state.processedJobs.size}`);
+            console.log(`- Última ejecución: ${this.state.lastRun ? new Date(this.state.lastRun).toLocaleString() : 'Nunca'}`);
+            console.log(`- Búsquedas en historial: ${this.state.searchHistory.length}`);
+            console.log(`- Versión del estado: ${parsed.version || 'No especificada'}`);
+            console.log(`- Guardado originalmente: ${parsed.savedAt ? new Date(parsed.savedAt).toLocaleString() : 'No registrado'}`);
+            console.log('=== SESIÓN CARGADA CORRECTAMENTE ===');
+            
         } catch (error) {
-            console.warn('No se pudo cargar el estado, inicializando vacío:', error.message);
+            console.log('No hay sesión guardada anteriormente, creando nueva sesión...');
+            console.log('🔄 Inicializando sesión vacía...');
+            
+            // Inicializar estado vacío
+            this.state = {
+                lastRun: null,
+                processedJobs: new Set(),
+                searchHistory: [],
+                stats: {
+                    totalProcessed: 0,
+                    lastProcessedCount: 0,
+                    averageProcessingTime: 0
+                }
+            };
+            
+            // Guardar estado inicial
+            await this.saveState();
         }
     }
 
     async saveState() {
         try {
+            console.log('=== INICIANDO GUARDADO DE SESIÓN ===');
+            
             // Asegurar que el directorio exista
             await this.ensureDataDirectory();
+            console.log('✓ Directorio de datos verificado');
             
             const stateToSave = {
                 lastRun: this.state.lastRun,
                 processedJobs: Array.from(this.state.processedJobs),
                 searchHistory: this.state.searchHistory.slice(-100), // Mantener últimos 100 registros
-                stats: this.state.stats
+                stats: this.state.stats,
+                savedAt: Date.now(),
+                version: '1.0.0'
             };
             
-            const jsonData = JSON.stringify(stateToSave, null, 2);
-            await fs.writeFile(this.stateFile, jsonData);
-            
-            console.log('=== SESIÓN GUARDADA ===');
+            console.log('Preparando datos para guardar:');
             console.log(`- Jobs procesados: ${stateToSave.processedJobs.length}`);
             console.log(`- Última ejecución: ${stateToSave.lastRun ? new Date(stateToSave.lastRun).toLocaleString() : 'No definida'}`);
             console.log(`- Total histórico: ${stateToSave.stats.totalProcessed}`);
             console.log(`- Búsquedas en historial: ${stateToSave.searchHistory.length}`);
+            
+            const jsonData = JSON.stringify(stateToSave, null, 2);
+            await fs.writeFile(this.stateFile, jsonData);
+            
+            // Verificar que el archivo se guardó correctamente
+            try {
+                await fs.access(this.stateFile);
+                const stats = await fs.stat(this.stateFile);
+                console.log(`✓ Sesión guardada exitosamente (${stats.size} bytes)`);
+                console.log(`📁 Archivo: ${this.stateFile}`);
+            } catch (verifyError) {
+                throw new Error(`No se pudo verificar el archivo guardado: ${verifyError.message}`);
+            }
+            
+            console.log('=== SESIÓN GUARDADA CORRECTAMENTE ===');
             console.log('========================');
+            
         } catch (error) {
-            console.error('Error al guardar estado:', error);
-            // No lanzar el error para no interrumpir el flujo
-            console.warn('Continuando sin guardar estado...');
+            console.error('❌ ERROR CRÍTICO AL GUARDAR SESIÓN:', error);
+            console.error('Stack trace:', error.stack);
+            
+            // Intentar backup
+            try {
+                const backupFile = this.stateFile + '.backup';
+                await fs.writeFile(backupFile, JSON.stringify({
+                    error: error.message,
+                    timestamp: Date.now(),
+                    partialState: {
+                        processedJobs: Array.from(this.state.processedJobs),
+                        lastRun: this.state.lastRun
+                    }
+                }, null, 2));
+                console.log(`📄 Backup de emergencia guardado en: ${backupFile}`);
+            } catch (backupError) {
+                console.error('❌ Error incluso en backup:', backupError);
+            }
         }
     }
 
@@ -168,6 +252,15 @@ class JobStateManager {
         return this.state.searchHistory.slice(-limit);
     }
 
+    async hasSessionFile() {
+        try {
+            await fs.access(this.stateFile);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
     getStats() {
         return {
             ...this.state.stats,
@@ -175,6 +268,87 @@ class JobStateManager {
             lastRun: this.state.lastRun,
             lastRunFormatted: this.state.lastRun ? new Date(this.state.lastRun).toLocaleString() : 'Nunca'
         };
+    }
+
+    async diagnoseSession() {
+        console.log('=== DIAGNÓSTICO COMPLETO DE SESIÓN ===');
+        
+        try {
+            // Verificar directorio
+            await this.ensureDataDirectory();
+            console.log('✓ Directorio de datos accesible');
+            
+            // Verificar archivo de estado
+            try {
+                await fs.access(this.stateFile);
+                const stats = await fs.stat(this.stateFile);
+                console.log('✓ Archivo de estado existe');
+                console.log(`📊 Tamaño: ${stats.size} bytes`);
+                console.log(`📅 Modificado: ${stats.mtime.toLocaleString()}`);
+                
+                // Leer contenido
+                const data = await fs.readFile(this.stateFile, 'utf8');
+                const parsed = JSON.parse(data);
+                
+                console.log('📋 Contenido del estado:');
+                console.log(`  - Versión: ${parsed.version || 'No especificada'}`);
+                console.log(`  - Guardado: ${parsed.savedAt ? new Date(parsed.savedAt).toLocaleString() : 'No registrado'}`);
+                console.log(`  - Jobs procesados: ${(parsed.processedJobs || []).length}`);
+                console.log(`  - Última ejecución: ${parsed.lastRun ? new Date(parsed.lastRun).toLocaleString() : 'Nunca'}`);
+                console.log(`  - Total histórico: ${parsed.stats?.totalProcessed || 0}`);
+                console.log(`  - Búsquedas: ${(parsed.searchHistory || []).length}`);
+                
+                return {
+                    fileExists: true,
+                    fileSize: stats.size,
+                    lastModified: stats.mtime,
+                    content: parsed,
+                    isValid: true
+                };
+                
+            } catch (fileError) {
+                console.log('❌ Archivo de estado no existe o está corrupto');
+                console.log(`Error: ${fileError.message}`);
+                return {
+                    fileExists: false,
+                    error: fileError.message,
+                    isValid: false
+                };
+            }
+            
+        } catch (error) {
+            console.error('❌ Error en diagnóstico:', error);
+            return {
+                error: error.message,
+                isValid: false
+            };
+        }
+    }
+
+    async forceSessionSave() {
+        console.log('=== FORZANDO GUARDADO DE SESIÓN ===');
+        
+        try {
+            const stateToSave = {
+                lastRun: this.state.lastRun,
+                processedJobs: Array.from(this.state.processedJobs),
+                searchHistory: this.state.searchHistory.slice(-10), // Solo últimos 10 para diagnóstico
+                stats: this.state.stats,
+                savedAt: Date.now(),
+                version: '1.0.0',
+                forced: true
+            };
+            
+            await this.ensureDataDirectory();
+            await fs.writeFile(this.stateFile, JSON.stringify(stateToSave, null, 2));
+            
+            console.log('✓ Sesión guardada forzosamente');
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Error al forzar guardado:', error);
+            return false;
+        }
     }
 
     async cleanupOldProcessedJobs(maxAge = 30 * 24 * 60 * 60 * 1000) { // 30 días por defecto

@@ -1,0 +1,87 @@
+{
+  "personalInfo": {
+    "name": "JEFFERSON RODRIGUEZ",
+    "title": "Desarrollador de Software | JavaScript | React",
+    "email": "jyrodriguezr1@gmail.com",
+    "phone": "+57 304-427-8154",
+    "location": "Bogotá, Colombia",
+    "github": "https://github.com/Jefrayrr",
+    "linkedin": ""
+  },
+  "experience": [
+    {
+      "company": "FYM Technology S.A.S",
+      "role": "Técnico Especializado en TI",
+      "duration": "2019 – 2020",
+      "skills": ["soporte técnico", "resolución de problemas", "redes", "hardware", "software"],
+      "achievements": [
+        "Resolución de problemas técnicos complejos",
+        "Soporte a usuarios en sistemas críticos",
+        "Documentación de incidentes técnicos"
+      ]
+    },
+    {
+      "company": "Fundación de Paz y Reconciliación",
+      "role": "Desarrollador de Software (Pasantía)",
+      "duration": "2020 – 2020",
+      "skills": ["javascript", "react.js", "html5", "css3", "localstorage", "aplicaciones web"],
+      "achievements": [
+        "Desarrollo de aplicación web completa con funcionalidad offline",
+        "Implementación de formularios dinámicos",
+        "Uso de LocalStorage para persistencia de datos"
+      ]
+    }
+  ],
+  "skills": {
+    "technical": [
+      "javascript", "c++", "c#", "java", "php", "python",
+      "react.js", "angular.js", "html5", "css3", "diseño responsive",
+      "node.js", "apis rest", "sql", "mysql",
+      "git", "linux", "visual studio code", "depuración", "solución de problemas", "localstorage"
+    ],
+    "soft": [
+      "resolución de problemas", "adaptabilidad a nuevas tecnologías", 
+      "trabajo en equipo técnico", "soporte especializado", "documentación"
+    ]
+  },
+  "education": [
+    {
+      "institution": "Universidad Distrital Francisco José de Caldas",
+      "degree": "Ingeniería Telemática",
+      "period": "2026 – Presente",
+      "status": "Cursando"
+    },
+    {
+      "institution": "Universidad Distrital Francisco José de Caldas",
+      "degree": "Tecnólogo en Sistematización de Datos",
+      "period": "2026 – 2025",
+      "status": "Graduado"
+    },
+    {
+      "institution": "SENA",
+      "degree": "Técnico en Programación de Software",
+      "period": "2019",
+      "status": "Graduado"
+    }
+  ],
+  "preferences": {
+    "locations": ["Bogotá", "Colombia", "remoto"],
+    "salary": 5000000,
+    "companyTypes": ["startup", "mid-size", "enterprise"],
+    "workTypes": ["full-time", "remoto"],
+    "industries": ["tecnología", "software", "fintech", "e-commerce"]
+  },
+  "projects": [
+    {
+      "name": "Aplicación Web de Formularios Offline",
+      "description": "Aplicación web para recolección de datos sin conexión a internet",
+      "technologies": ["javascript", "react.js", "html5", "css3", "localstorage"],
+      "period": "2020",
+      "highlights": [
+        "Funcionalidad completa offline",
+        "Formularios dinámicos y validación",
+        "Integración con sistemas existentes"
+      ]
+    }
+  ]
+}
